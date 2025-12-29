@@ -1,37 +1,47 @@
 {
-  description = "some lean4 package";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
-  inputs.flake-utils.url = "github:numtide/flake-utils";
+  description = "Lean 4 Example Project";
 
-  inputs.lean-nix.url = "github:enricozb/lean.nix";
-  inputs.lean4.url = "github:leanprover/lean4/v4.3.0-rc1";
-  inputs.lean-mathlib-src = {
-    url = "github:leanprover-community/mathlib4/v4.3.0-rc1";
-    flake = false;
+  inputs = {
+    nixpkgs.follows = "lean4-nix/nixpkgs";
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    lean4-nix.url = "github:lenianiva/lean4-nix";
   };
 
-  outputs = { self, nixpkgs, flake-utils, lean-nix, lean4, lean-mathlib-src }:
-    flake-utils.lib.eachDefaultSystem (system:
-      let
-        pkgs = nixpkgs.legacyPackages.${system};
-        lean4-pkgs = lean4.packages.${system};
-        lean-nix-pkgs = lean-nix.packages.${system};
+  outputs = inputs @ {
+    nixpkgs,
+    flake-parts,
+    lean4-nix,
+    ...
+  }:
+    flake-parts.lib.mkFlake {inherit inputs;} {
+      systems = [
+        "aarch64-darwin"
+        "aarch64-linux"
+        "x86_64-darwin"
+        "x86_64-linux"
+      ];
 
-        lean-mathlib = lean-nix-pkgs.lake2nix {
-          name = "mathlib";
-          src = lean-mathlib-src;
-          lean-toolchain = lean4-pkgs;
+      perSystem = {
+        system,
+        pkgs,
+        ...
+      }: {
+        _module.args.pkgs = import nixpkgs {
+          inherit system;
+          overlays = [(lean4-nix.readToolchainFile ./lean-toolchain)];
         };
 
-      in {
+        packages.default =
+          (pkgs.lean.buildLeanPackage {
+            name = "Leanon";
+            roots = ["Main"];
+            src = pkgs.lib.cleanSource ./.;
+          })
+          .executable;
+
         devShells.default = pkgs.mkShell {
-          packages = [
-            lean4-pkgs.lean-all
-            lean4-pkgs.vscode
-
-            lean-mathlib.package.modRoot
-          ];
+          packages = with pkgs.lean; [lean-all];
         };
-      });
-
+      };
+    };
 }
