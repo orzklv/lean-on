@@ -1,7 +1,7 @@
-name = "Minimal"
+name = "Leanon"
 version = "0.1.0"
-defaultTargets = ["minimal"]
+defaultTargets = ["leanon"]
 
 [[lean_exe]]
-name = "minimal"
+name = "leanon"
 root = "Main"
