@@ -1,5 +1,5 @@
 {
-  description = "Lean 4 Example Project";
+  description = "Lean 4 introduction for Orzklv";
 
   inputs = {
     nixpkgs.follows = "lean4-nix/nixpkgs";
@@ -28,7 +28,11 @@
       }: {
         _module.args.pkgs = import nixpkgs {
           inherit system;
-          overlays = [(lean4-nix.readToolchainFile ./lean-toolchain)];
+          # https://github.com/lenianiva/lean4-nix/issues/76
+          overlays = [(lean4-nix.readToolchainFile {
+            toolchain = ./lean-toolchain;
+            binary = system != "aarch64-darwin";
+          })];
         };
 
         packages.default =
@@ -39,7 +43,7 @@
           })
           .executable;
 
-        devShells.default = pkgs.mkShell {
+        devShells.default = pkgs.mkShellNoCC {
           packages = with pkgs; [
             nixd
             lean.lean-all
